@@ -5,10 +5,10 @@ import argparse
 import matplotlib.pyplot as plt
 import h5py
 
-from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS
+from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, UR_PUPPET_GRIPPER_CONTROL_NORMALIZE_FN,SIM_TASK_CONFIGS
 from ee_sim_env import make_ee_sim_env
 from sim_env import make_sim_env, BOX_POSE
-from scripted_policy import PickAndTransferPolicy, InsertionPolicy
+from scripted_policy import PickAndTransferPolicy, InsertionPolicy, StackCubePolicy, MadaMadaPolicy
 
 import IPython
 e = IPython.embed
@@ -37,10 +37,19 @@ def main(args):
     camera_names = SIM_TASK_CONFIGS[task_name]['camera_names']
     if task_name == 'sim_transfer_cube_scripted':
         policy_cls = PickAndTransferPolicy
+        aloha =True
     elif task_name == 'sim_insertion_scripted':
         policy_cls = InsertionPolicy
+        aloha =True
     elif task_name == 'sim_transfer_cube_scripted_mirror':
         policy_cls = PickAndTransferPolicy
+        aloha =True
+    elif task_name == 'sim_stack_cube_scripted':
+        policy_cls = StackCubePolicy
+        aloha = False
+    elif task_name == 'sim_madamada_scripted':
+        policy_cls = MadaMadaPolicy
+        aloha = False
     else:
         raise NotImplementedError
 
@@ -62,6 +71,7 @@ def main(args):
             action = policy(ts)
             ts = env.step(action)
             episode.append(ts)
+    
             if onscreen_render:
                 plt_img.set_data(ts.observation['images'][render_cam_name])
                 plt.pause(0.002)
@@ -77,12 +87,16 @@ def main(args):
         joint_traj = [ts.observation['qpos'] for ts in episode]
         # replace gripper pose with gripper control
         gripper_ctrl_traj = [ts.observation['gripper_ctrl'] for ts in episode]
-        for joint, ctrl in zip(joint_traj, gripper_ctrl_traj):
-            left_ctrl = PUPPET_GRIPPER_POSITION_NORMALIZE_FN(ctrl[0])
-            right_ctrl = PUPPET_GRIPPER_POSITION_NORMALIZE_FN(ctrl[2])
-            joint[6] = left_ctrl
-            joint[6+7] = right_ctrl
-
+        if aloha:
+            for joint, ctrl in zip(joint_traj, gripper_ctrl_traj):
+                left_ctrl = PUPPET_GRIPPER_POSITION_NORMALIZE_FN(ctrl[0])
+                right_ctrl = PUPPET_GRIPPER_POSITION_NORMALIZE_FN(ctrl[2])
+                joint[6] = left_ctrl
+                joint[6+7] = right_ctrl
+        else:
+            for joint, ctrl in zip(joint_traj, gripper_ctrl_traj):
+                joint[6] = UR_PUPPET_GRIPPER_CONTROL_NORMALIZE_FN(ctrl[0])
+            joint_traj = [joint[:7] for joint in joint_traj]#作截断，只保留6维机械臂+1维夹爪（qpos本身）
         subtask_info = episode[0].observation['env_state'].copy() # box pose at step 0
 
         # clear unused variables
@@ -103,7 +117,7 @@ def main(args):
             plt_img = ax.imshow(ts.observation['images'][render_cam_name])
             plt.ion()
         for t in range(len(joint_traj)): # note: this will increase episode length by 1
-            action = joint_traj[t]
+            action = joint_traj[t] #实际上准确说法应该是action_traj而非joint_traj
             ts = env.step(action)
             episode_replay.append(ts)
             if onscreen_render:
@@ -157,6 +171,21 @@ def main(args):
             for cam_name in camera_names:
                 data_dict[f'/observations/images/{cam_name}'].append(ts.observation['images'][cam_name])
 
+        # Contact 6 DoF arm + 1 DoF gripper ctrl [t-1 state]
+        if not aloha:
+            qpos_array = np.array(data_dict['/observations/qpos'])[:,:6]  # (max_timesteps, 6)
+            action_array = np.array(data_dict['/action'])           # (max_timesteps, 7)
+            qpos_new = []
+            for i in range(max_timesteps):
+                if i == 0:
+                    cat_val = 0
+                else:
+                    cat_val = action_array[i-1, 6]
+                qpos_new.append(np.concatenate([qpos_array[i], [cat_val]]))
+            data_dict['/observations/qpos'] = np.stack(qpos_new, axis=0)  #
+            data_dict['/observations/qvel'] = np.array(data_dict['/observations/qvel'])[:,:6]  
+
+
         # HDF5
         t0 = time.time()
         dataset_path = os.path.join(dataset_dir, f'episode_{episode_idx}')
@@ -167,14 +196,21 @@ def main(args):
             for cam_name in camera_names:
                 _ = image.create_dataset(cam_name, (max_timesteps, 480, 640, 3), dtype='uint8',
                                          chunks=(1, 480, 640, 3), )
-            # compression='gzip',compression_opts=2,)
-            # compression=32001, compression_opts=(0, 0, 0, 0, 9, 1, 1), shuffle=False)
-            qpos = obs.create_dataset('qpos', (max_timesteps, 14))
-            qvel = obs.create_dataset('qvel', (max_timesteps, 14))
-            action = root.create_dataset('action', (max_timesteps, 14))
+            if aloha:
+                is_sim = root.attrs['aloha']=True
+                qpos = obs.create_dataset('qpos', (max_timesteps, 14))  
+                qvel = obs.create_dataset('qvel', (max_timesteps, 14))
+                action = root.create_dataset('action', (max_timesteps, 14))
+                for name, array in data_dict.items():
+                    root[name][...] = array
+            else:
+                is_sim = root.attrs['aloha']=False
+                qpos = obs.create_dataset('qpos', (max_timesteps, 7))  #此处为了把夹爪约化进去做了改变 6 qpos + 1 ctrl
+                qvel = obs.create_dataset('qvel', (max_timesteps, 6)) #懒得改了，反正用不上
+                action = root.create_dataset('action', (max_timesteps, 7))#6+1
+                for name, array in data_dict.items():
+                    root[name][...] = array
 
-            for name, array in data_dict.items():
-                root[name][...] = array
         print(f'Saving: {time.time() - t0:.1f} secs\n')
 
     print(f'Saved to {dataset_dir}')

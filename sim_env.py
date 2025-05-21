@@ -6,11 +6,13 @@ from dm_control import mujoco
 from dm_control.rl import control
 from dm_control.suite import base
 
-from constants import DT, XML_DIR, START_ARM_POSE
+from constants import DT, XML_DIR, START_ARM_POSE, UR_START_ARM_POSE
 from constants import PUPPET_GRIPPER_POSITION_UNNORMALIZE_FN
 from constants import MASTER_GRIPPER_POSITION_NORMALIZE_FN
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN
 from constants import PUPPET_GRIPPER_VELOCITY_NORMALIZE_FN
+from constants import UR_PUPPET_GRIPPER_CONTROL_UNNORMALIZE_FN
+from constants import UR_PUPPET_GRIPPER_CONTROL_NORMALIZE_FN 
 
 import IPython
 e = IPython.embed
@@ -45,6 +47,18 @@ def make_sim_env(task_name):
         xml_path = os.path.join(XML_DIR, f'bimanual_viperx_insertion.xml')
         physics = mujoco.Physics.from_xml_path(xml_path)
         task = InsertionTask(random=False)
+        env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
+                                  n_sub_steps=None, flat_observation=False)
+    elif 'sim_stack_cube' in task_name:
+        xml_path = os.path.join(XML_DIR, f'sim_task_ur', f'stack_cube.xml').replace("\\", "/")#统一为正斜杠
+        physics = mujoco.Physics.from_xml_path(xml_path)
+        task = StackCubeTask(random=False)
+        env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
+                                  n_sub_steps=None, flat_observation=False)
+    elif 'sim_madamada' in task_name:
+        xml_path = os.path.join(XML_DIR, f'sim_task_ur', f'stack_cube.xml').replace("\\", "/")#统一为正斜杠
+        physics = mujoco.Physics.from_xml_path(xml_path)
+        task = StackCubeTask(random=False)
         env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
                                   n_sub_steps=None, flat_observation=False)
     else:
@@ -229,6 +243,91 @@ class InsertionTask(BimanualViperXTask):
         if pin_touched: # successful insertion
             reward = 4
         return reward
+
+class SingleUr5eTask(BimanualViperXTask):
+    def __init__(self, random=None):
+        super().__init__(random=random)
+    def before_step(self, action, physics):
+        arm_action = action[:6]
+        normalized_gripper_action = action[6]
+
+        gripper_action = UR_PUPPET_GRIPPER_CONTROL_UNNORMALIZE_FN(normalized_gripper_action)
+
+        env_action = np.concatenate([arm_action,  np.array([gripper_action])])# 因为gripper只有一个自由度，所以要加一个维度对齐
+        base.Task.before_step(self, env_action, physics)# 绕过父类，避免冲突
+        return
+    def initialize_episode(self, physics):
+        """Sets the state of the environment at the start of each episode."""
+        super().initialize_episode(physics)
+
+    @staticmethod
+    def get_qpos(physics):
+        qpos_raw = physics.data.qpos.copy()
+        qpos_raw = qpos_raw[:14]
+        return qpos_raw
+
+    @staticmethod
+    def get_qvel(physics):
+        qvel_raw = physics.data.qvel.copy()
+        qvel_raw = qvel_raw[:14]
+        return qvel_raw
+
+    def get_observation(self, physics):
+        obs = collections.OrderedDict()
+        obs['qpos'] = self.get_qpos(physics)
+        obs['qvel'] = self.get_qvel(physics)
+        obs['env_state'] = self.get_env_state(physics)
+        obs['images'] = dict()
+        obs['images']['top'] = physics.render(height=480, width=640, camera_id='angle')
+        obs['images']['angle'] = physics.render(height=480, width=640, camera_id='angle')
+        # obs['images']['left_wrist'] = physics.render(height=480, width=640, camera_id='left_wrist') 先撤了
+        # obs['images']['right_wrist'] = physics.render(height=480, width=640, camera_id='right_wrist')   
+        return obs
+class StackCubeTask(SingleUr5eTask):
+    def __init__(self, random=None):
+        super().__init__(random=random)
+        self.max_reward = 4
+
+    def initialize_episode(self, physics):
+        """Sets the state of the environment at the start of each episode."""
+        with physics.reset_context():
+            physics.named.data.qpos[:14] = UR_START_ARM_POSE[:14]
+            np.copyto(physics.data.ctrl, UR_START_ARM_POSE[:7])#???DATA.CTRL效果不一样呀，得看xml的actuator
+            assert BOX_POSE[0] is not None
+            physics.named.data.qpos[14:] = BOX_POSE[0]
+            # print(f"{BOX_POSE=}")
+        super().initialize_episode(physics)
+    @staticmethod
+    def get_env_state(physics):
+        env_state = physics.data.qpos.copy()[14:]
+        return env_state
+        
+    def get_reward(self, physics):
+        # return whether left gripper is holding the box
+        all_contact_pairs = []
+        for i_contact in range(physics.data.ncon):
+            id_geom_1 = physics.data.contact[i_contact].geom1
+            id_geom_2 = physics.data.contact[i_contact].geom2
+            name_geom_1 = physics.model.id2name(id_geom_1, 'geom')
+            name_geom_2 = physics.model.id2name(id_geom_2, 'geom')
+            contact_pair = (name_geom_1, name_geom_2)
+            all_contact_pairs.append(contact_pair)
+
+        touch_gripper = ("red_box", "2f85:gripper_finger") in all_contact_pairs
+        touch_box = ("red_box", "blue_box") in all_contact_pairs
+        touch_table = ("red_box", "table_collision") in all_contact_pairs
+
+        reward = 0
+        if touch_gripper:
+            reward = 1
+        if touch_gripper and not touch_table: # lifted
+            reward = 2
+        if touch_box: # attempted transfer
+            reward = 3
+        if touch_box and not touch_table: # successful transfer
+            reward = 4
+        return reward
+
 
 
 def get_action(master_bot_left, master_bot_right):

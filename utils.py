@@ -337,6 +337,20 @@ def sample_insertion_pose():
 
     return peg_pose, socket_pose
 
+#### For UR5e Task 
+def ur_task_sample_box_pose():
+    x_range = [1.1, 1.4]
+    y_range = [0.1, 0.3]
+    z_range = [0.05, 0.05]
+
+    ranges = np.vstack([x_range, y_range, z_range])
+    cube_position = np.random.uniform(ranges[:, 0], ranges[:, 1])
+
+    cube_quat = np.array([1, 0, 0, 0])
+    return np.concatenate([cube_position, cube_quat])
+
+
+
 ### helper functions
 
 def compute_dict_mean(epoch_dicts):

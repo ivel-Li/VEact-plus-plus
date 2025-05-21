@@ -149,6 +149,75 @@ class InsertionPolicy(BasePolicy):
         ]
 
 
+class SingleArmBasePolicy(BasePolicy):
+    def __init__(self, inject_noise=False):
+        super().__init__(inject_noise)
+
+    def __call__(self, ts=0.02):
+        # generate trajectory at first timestep, then open-loop execution
+        if self.step_count == 0:
+            self.generate_trajectory(ts)
+
+        if self.left_trajectory[0]['t'] == self.step_count:
+            self.curr_left_waypoint = self.left_trajectory.pop(0)
+        next_left_waypoint = self.left_trajectory[0]
+        # interpolate between waypoints to obtain current pose and gripper command
+        left_xyz, left_quat, left_gripper = self.interpolate(self.curr_left_waypoint, next_left_waypoint, self.step_count)
+
+        # Inject noise
+        if self.inject_noise:
+            scale = 0.01
+            left_xyz = left_xyz + np.random.uniform(-scale, scale, left_xyz.shape)
+
+        action_left = np.concatenate([left_xyz, left_quat, [left_gripper]])
+
+        self.step_count += 1
+        return action_left
+
+
+class StackCubePolicy(SingleArmBasePolicy):
+    def __init__(self, inject_noise=False):
+        super().__init__(inject_noise)
+
+    def generate_trajectory(self, ts_first):
+
+
+        init_mocap_pose = ts_first.observation['mocap_pose']
+
+        box_info = np.array(ts_first.observation['env_state'])
+        box_red_xyz = box_info[:3]
+        box_red_quat = box_info[3:7]
+        box_blue_xyz = box_info[7:10]
+        box_blue_quat = box_info[10:]#需根据实际state修改
+        # print(f"Generate trajectory for {box_xyz=}")
+
+        gripper_pick_quat = Quaternion(init_mocap_pose[3:])
+        # gripper_pick_quat = init_mocap_pose[3:]
+        # gripper_pick_quat = gripper_pick_quat * Quaternion(axis=[0.0, 0.0, 1.0], degrees=-90)
+        # gripper_pick_quat = gripper_pick_quat * Quaternion(axis=[1.0, 0.0, 0.0], degrees=-90)
+
+        # meet_left_quat = Quaternion(axis=[1.0, 0.0, 0.0], degrees=90)
+
+        # meet_xyz = np.array([0, 0.5, 0.25])
+
+        # 结果为 [0.5, -0.5, 0.5, 0.5]（wxyz格式）
+
+        self.left_trajectory = [
+            {"t": 0, "xyz": init_mocap_pose[:3], "quat": init_mocap_pose[3:], "gripper":0},
+            {"t": 60, "xyz": box_red_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 90, "xyz": box_red_xyz+np.array([0, 0, 0.3]), "quat": gripper_pick_quat.elements,"gripper":1},#gripper open
+            {"t": 120, "xyz": box_red_xyz+np.array([0, 0, 0.2]), "quat": gripper_pick_quat.elements,"gripper":1},#close to cube
+            {"t": 140, "xyz": box_red_xyz+np.array([0, 0, 0.2]), "quat": gripper_pick_quat.elements,"gripper":0},#gripper close
+            {"t": 180, "xyz": box_red_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 260, "xyz": box_blue_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 320, "xyz": box_blue_xyz+np.array([0, 0, 0.3]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 360, "xyz": box_blue_xyz+np.array([0, 0, 0.3]), "quat": gripper_pick_quat.elements,"gripper":1},
+            {"t": 400, "xyz": box_blue_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":1},#stay
+      ]#
+
+class MadaMadaPolicy(SingleArmBasePolicy):
+    def __init__(self, inject_noise=False):
+        super().__init__(inject_noise)
 def test_policy(task_name):
     # example rolling out pick_and_transfer policy
     onscreen_render = True

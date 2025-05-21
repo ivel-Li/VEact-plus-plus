@@ -21,6 +21,7 @@ def load_hdf5(dataset_dir, dataset_name):
 
     with h5py.File(dataset_path, 'r') as root:
         is_sim = root.attrs['sim']
+        is_aloha = root.attrs['aloha']
         qpos = root['/observations/qpos'][()]
         qvel = root['/observations/qvel'][()]
         action = root['/action'][()]
@@ -28,7 +29,7 @@ def load_hdf5(dataset_dir, dataset_name):
         for cam_name in root[f'/observations/images/'].keys():
             image_dict[cam_name] = root[f'/observations/images/{cam_name}'][()]
 
-    return qpos, qvel, action, image_dict
+    return qpos, qvel, action, image_dict,is_aloha
 
 def main(args):
     dataset_dir = args['dataset_dir']
@@ -39,9 +40,9 @@ def main(args):
     else:
         dataset_name = f'episode_{episode_idx}'
 
-    qpos, qvel, action, image_dict = load_hdf5(dataset_dir, dataset_name)
+    qpos, qvel, action, image_dict, is_aloha = load_hdf5(dataset_dir, dataset_name)
     save_videos(image_dict, DT, video_path=os.path.join(dataset_dir, dataset_name + '_video.mp4'))
-    visualize_joints(qpos, action, plot_path=os.path.join(dataset_dir, dataset_name + '_qpos.png'))
+    visualize_joints(qpos, action, is_aloha, plot_path=os.path.join(dataset_dir, dataset_name + '_qpos.png'))
     # visualize_timestamp(t_list, dataset_path) # TODO addn timestamp back
 
 
@@ -82,7 +83,7 @@ def save_videos(video, dt, video_path=None):
         print(f'Saved video to: {video_path}')
 
 
-def visualize_joints(qpos_list, command_list, plot_path=None, ylim=None, label_overwrite=None):
+def visualize_joints(qpos_list, command_list, is_aloha, plot_path=None, ylim=None, label_overwrite=None):
     if label_overwrite:
         label1, label2 = label_overwrite
     else:
@@ -103,11 +104,17 @@ def visualize_joints(qpos_list, command_list, plot_path=None, ylim=None, label_o
         ax.set_title(f'Joint {dim_idx}: {all_names[dim_idx]}')
         ax.legend()
 
-    # plot arm command
-    for dim_idx in range(num_dim):
-        ax = axs[dim_idx]
-        ax.plot(command[:, dim_idx], label=label2)
-        ax.legend()
+    if  is_aloha:
+        # plot arm command
+        for dim_idx in range(num_dim):
+            ax = axs[dim_idx]
+            ax.plot(command[:, dim_idx], label=label2)
+            ax.legend()
+    else: 
+        for dim_idx in range(7):
+            ax = axs[dim_idx]
+            ax.plot(command[:, dim_idx], label=label2)
+            ax.legend()
 
     if ylim:
         for dim_idx in range(num_dim):

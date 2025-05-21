@@ -1,0 +1,60 @@
+<mujocoinclude>
+  <default>
+    <include file="./universal_robots_ur5e/ur5e_classes.xml"/>
+    <default class="2f85">
+      <mesh scale="0.001 0.001 0.001" />
+      <general biastype="affine" />
+
+      <joint axis="1 0 0" />
+
+      <!-- range值参考的repo中设置的很小，几乎不工作（*）原来是因为需要指定compiler定义旋转关节采用radian（弧度制） -->
+      <default class="2f85:driver">
+        <joint range="0 0.8" armature="0.005" damping="0.1" solimplimit="0.95 0.99 0.001"
+          solreflimit="0.005 1" />
+      </default>
+      <default class="2f85:follower">
+        <joint range="-0.872664 0.872664" pos="0 -0.018 0.0065" solimplimit="0.95 0.99 0.001"
+          solreflimit="0.005 1" />
+      </default>
+      <default class="2f85:spring_link">
+        <joint range="-0.29670597283 0.8" stiffness="0.05" springref="2.62" damping="0.00125" />
+      </default>
+      <default class="2f85:coupler">
+        <joint range="-1.57 0" solimplimit="0.95 0.99 0.001" solreflimit="0.005 1" />
+      </default>
+
+      <default class="2f85:visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2" />
+      </default>
+      <default class="2f85:collision">
+        <geom type="mesh" group="3" />
+        <default class="2f85:pad_box1">
+          <geom mass="0" type="box" pos="0 -0.0026 0.028125" size="0.011 0.004 0.009375"
+            friction="0.7"
+            solimp="0.95 0.99 0.001" solref="0.004 1" priority="1" rgba="0.55 0.55 0.55 1" />
+        </default>
+        <default class="2f85:pad_box2">
+          <geom mass="0" type="box" pos="0 -0.0026 0.009375" size="0.011 0.004 0.009375"
+            friction="0.6"
+            solimp="0.95 0.99 0.001" solref="0.004 1" priority="1" rgba="0.45 0.45 0.45 1" />
+        </default>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <include file="./universal_robots_ur5e/ur5e_assets.xml" />
+    <material name="2f85:metal" rgba="0.58 0.58 0.58 1" />
+    <material name="2f85:silicone" rgba="0.1882 0.1882 0.1882 1" />
+    <material name="2f85:gray" rgba="0.4627 0.4627 0.4627 1" />
+    <material name="2f85:black" rgba="0.149 0.149 0.149 1" />
+
+    <mesh class="2f85" name="2f85:base_mount" file="../robotiq_2f85/assets/base_mount.stl" />
+    <mesh class="2f85" name="2f85:base" file="../robotiq_2f85/assets/base.stl" />
+    <mesh class="2f85" name="2f85:driver" file="../robotiq_2f85/assets/driver.stl" />
+    <mesh class="2f85" name="2f85:coupler" file="../robotiq_2f85/assets/coupler.stl" />
+    <mesh class="2f85" name="2f85:follower" file="../robotiq_2f85/assets/follower.stl" />
+    <mesh class="2f85" name="2f85:pad" file="../robotiq_2f85/assets/pad.stl" />
+    <mesh class="2f85" name="2f85:silicone_pad" file="../robotiq_2f85/assets/silicone_pad.stl" />
+    <mesh class="2f85" name="2f85:spring_link" file="../robotiq_2f85/assets/spring_link.stl" />
+  </asset>
+</mujocoinclude>
