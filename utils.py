@@ -339,9 +339,9 @@ def sample_insertion_pose():
 
 #### For UR5e Task 
 def ur_task_sample_box_pose():
-    x_range = [1.1, 1.4]
-    y_range = [0.1, 0.3]
-    z_range = [0.05, 0.05]
+    x_range = [1.25, 1.35]#范围可能太大了
+    y_range = [0.15, 0.25]
+    z_range = [0.775, 0.775]
 
     ranges = np.vstack([x_range, y_range, z_range])
     cube_position = np.random.uniform(ranges[:, 0], ranges[:, 1])

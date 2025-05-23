@@ -8,7 +8,7 @@ from pyquaternion import Quaternion
 
 #'d:/Reasearch/ACT/imitation_learning_dp-master/imitation_learning_dp/assets/scenes/scene.xml'
 'd:/Reasearch/robotics/gello_software/experiments/sim_task_ur/scenes/ee_transfer_cube.xml'
-m = mujoco.MjModel.from_xml_path('d:/Reasearch/robotics/gello_software/experiments/sim_task_ur/scenes/ee_transfer_cube.xml')
+m = mujoco.MjModel.from_xml_path('D:/Reasearch/VEact-plus-plus/assets/sim_task_ur/stack_cube.xml')
 d = mujoco.MjData(m)
 
 def set_mocap_pose(pos, quat):

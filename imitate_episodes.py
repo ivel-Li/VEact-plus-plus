@@ -15,7 +15,7 @@ from torchvision import transforms
 from constants import FPS
 from constants import PUPPET_GRIPPER_JOINT_OPEN
 from utils import load_data # data functions
-from utils import sample_box_pose, sample_insertion_pose # robot functions
+from utils import sample_box_pose, sample_insertion_pose, ur_task_sample_box_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action # helper functions
 from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy
 from visualize_episodes import save_videos
@@ -26,7 +26,6 @@ from sim_env import BOX_POSE
 
 import IPython
 e = IPython.embed
-
 def get_auto_index(dataset_dir):
     max_idx = 1000
     for i in range(max_idx+1):
@@ -59,6 +58,7 @@ def main(args):
         from aloha_scripts.constants import TASK_CONFIGS
         task_config = TASK_CONFIGS[task_name]
     dataset_dir = task_config['dataset_dir']
+    print(dataset_dir)
     # num_episodes = task_config['num_episodes']
     episode_len = task_config['episode_len']
     camera_names = task_config['camera_names']
@@ -68,7 +68,21 @@ def main(args):
     name_filter = task_config.get('name_filter', lambda n: True)
 
     # fixed parameters
-    state_dim = 14
+    aloha_task_map = {
+        'sim_transfer_cube_scripted': True,
+        'sim_insertion_scripted': True,
+        'sim_transfer_cube_scripted_mirror': True,
+        'sim_stack_cube_scripted': False,
+        'sim_madamada_scripted': False,
+    }
+    if task_name in aloha_task_map:
+        aloha = aloha_task_map[task_name]
+        action_dim = 16 if aloha else 9
+    else:
+        raise NotImplementedError
+
+    state_dim = 14  if aloha else 7
+
     lr_backbone = 1e-5
     backbone = 'resnet18'
     if policy_class == 'ACT':
@@ -89,7 +103,8 @@ def main(args):
                          'vq': args['use_vq'],
                          'vq_class': args['vq_class'],
                          'vq_dim': args['vq_dim'],
-                         'action_dim': 16,
+                         'action_dim': action_dim,
+                         'state_dim': state_dim,
                          'no_encoder': args['no_encoder'],
                          }
     elif policy_class == 'Diffusion':
@@ -107,7 +122,7 @@ def main(args):
                          }
     elif policy_class == 'CNNMLP':
         policy_config = {'lr': args['lr'], 'lr_backbone': lr_backbone, 'backbone' : backbone, 'num_queries': 1,
-                         'camera_names': camera_names,}
+                         'camera_names': camera_names,'state_dim': state_dim,}
     else:
         raise NotImplementedError
 
@@ -138,6 +153,7 @@ def main(args):
         'real_robot': not is_sim,
         'load_pretrain': args['load_pretrain'],
         'actuator_config': actuator_config,
+        'aloha': aloha,
     }
 
     if not os.path.isdir(ckpt_dir):
@@ -145,12 +161,12 @@ def main(args):
     config_path = os.path.join(ckpt_dir, 'config.pkl')
     expr_name = ckpt_dir.split('/')[-1]
     if not is_eval:
-        wandb.init(project="mobile-aloha2", reinit=True, entity="mobile-aloha2", name=expr_name)
+        wandb.init(project="VEACT", reinit=True, entity="1453758955-nankai-university", name=expr_name)
         wandb.config.update(config)
     with open(config_path, 'wb') as f:
         pickle.dump(config, f)
     if is_eval:
-        ckpt_names = [f'policy_last.ckpt']
+        ckpt_names = [f'policy_best.ckpt']# 感觉policy_best比policy_last靠谱呀
         results = []
         for ckpt_name in ckpt_names:
             success_rate, avg_return = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=10)
@@ -240,6 +256,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     onscreen_cam = 'angle'
     vq = config['policy_config']['vq']
     actuator_config = config['actuator_config']
+    aloha = config['aloha']
     use_actuator_net = actuator_config['actuator_network_dir'] is not None
 
     # load policy and stats
@@ -325,6 +342,9 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
             BOX_POSE[0] = sample_box_pose() # used in sim reset
         elif 'sim_insertion' in task_name:
             BOX_POSE[0] = np.concatenate(sample_insertion_pose()) # used in sim reset
+        elif 'sim_stack_cube' in task_name:
+            BOX_POSE[0] = ur_task_sample_box_pose()# used in sim reset
+
 
         ts = env.reset()
 
@@ -366,9 +386,18 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 else:
                     image_list.append({'main': obs['image']})
                 qpos_numpy = np.array(obs['qpos'])
-                qpos_history_raw[t] = qpos_numpy
-                qpos = pre_process(qpos_numpy)
-                qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
+                if aloha:
+                    qpos_history_raw[t] = qpos_numpy
+                    qpos = pre_process(qpos_numpy)
+                    qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
+                else:
+                    if t == 0:
+                        cat_val = 0
+                    else:
+                        cat_val = target_qpos_list[-1][6]
+                    qpos_history_raw[t] = np.concatenate([qpos_numpy[:6], [cat_val]])
+                    qpos = pre_process(np.concatenate([qpos_numpy[:6], [cat_val]]))
+                    qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
                 # qpos_history[:, t] = qpos
                 if t % query_frequency == 0:
                     curr_image = get_image(ts, camera_names, rand_crop_resize=(config['policy_class'] == 'Diffusion'))
@@ -457,7 +486,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 if real_robot:
                     ts = env.step(target_qpos, base_action)
                 else:
-                    ts = env.step(target_qpos)
+                    ts = env.step(action)
                 # print('step env: ', time.time() - time5)
 
                 ### for visualization
@@ -541,6 +570,7 @@ def train_bc(train_dataloader, val_dataloader, config):
     eval_every = config['eval_every']
     validate_every = config['validate_every']
     save_every = config['save_every']
+
 
     set_seed(seed)
 

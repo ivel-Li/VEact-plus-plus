@@ -205,9 +205,9 @@ class StackCubePolicy(SingleArmBasePolicy):
         self.left_trajectory = [
             {"t": 0, "xyz": init_mocap_pose[:3], "quat": init_mocap_pose[3:], "gripper":0},
             {"t": 60, "xyz": box_red_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
-            {"t": 90, "xyz": box_red_xyz+np.array([0, 0, 0.3]), "quat": gripper_pick_quat.elements,"gripper":1},#gripper open
-            {"t": 120, "xyz": box_red_xyz+np.array([0, 0, 0.2]), "quat": gripper_pick_quat.elements,"gripper":1},#close to cube
-            {"t": 140, "xyz": box_red_xyz+np.array([0, 0, 0.2]), "quat": gripper_pick_quat.elements,"gripper":0},#gripper close
+            {"t": 90, "xyz": box_red_xyz+np.array([0, 0, 0.35]), "quat": gripper_pick_quat.elements,"gripper":1},#gripper open
+            {"t": 120, "xyz": box_red_xyz+np.array([0, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":1},#close to cube
+            {"t": 140, "xyz": box_red_xyz+np.array([0, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":0},#gripper close
             {"t": 180, "xyz": box_red_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
             {"t": 260, "xyz": box_blue_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
             {"t": 320, "xyz": box_blue_xyz+np.array([0, 0, 0.3]), "quat": gripper_pick_quat.elements,"gripper":0},

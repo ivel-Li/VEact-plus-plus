@@ -278,7 +278,7 @@ class SingleUr5eTask(BimanualViperXTask):
         obs['qvel'] = self.get_qvel(physics)
         obs['env_state'] = self.get_env_state(physics)
         obs['images'] = dict()
-        obs['images']['top'] = physics.render(height=480, width=640, camera_id='angle')
+        obs['images']['top'] = physics.render(height=480, width=640, camera_id='top')
         obs['images']['angle'] = physics.render(height=480, width=640, camera_id='angle')
         # obs['images']['left_wrist'] = physics.render(height=480, width=640, camera_id='left_wrist') 先撤了
         # obs['images']['right_wrist'] = physics.render(height=480, width=640, camera_id='right_wrist')   
@@ -294,7 +294,10 @@ class StackCubeTask(SingleUr5eTask):
             physics.named.data.qpos[:14] = UR_START_ARM_POSE[:14]
             np.copyto(physics.data.ctrl, UR_START_ARM_POSE[:7])#???DATA.CTRL效果不一样呀，得看xml的actuator
             assert BOX_POSE[0] is not None
-            physics.named.data.qpos[14:] = BOX_POSE[0]
+            if len(BOX_POSE[0]) == 14:
+                physics.named.data.qpos[14:] = BOX_POSE[0] #record时复制所有环境信息
+            elif len(BOX_POSE[0]) == 7:
+                physics.named.data.qpos[14:21] = BOX_POSE[0] #训练时为了少修改一些代码
             # print(f"{BOX_POSE=}")
         super().initialize_episode(physics)
     @staticmethod

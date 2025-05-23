@@ -345,7 +345,7 @@ class SingleUr5eEETask(BimanualViperXEETask):
         obs['env_state'] = self.get_env_state(physics)
         obs['images'] = dict()
         obs['images']['angle'] = physics.render(height=480, width=640, camera_id='angle')
-        obs['images']['top'] = physics.render(height=480, width=640, camera_id='angle')
+        obs['images']['top'] = physics.render(height=480, width=640, camera_id='top')
         # obs['images']['vis'] = physics.render(height=480, width=640, camera_id='front_close')
         # used in scripted policy to obtain starting pose
         obs['mocap_pose'] = np.concatenate([physics.data.mocap_pos[0], physics.data.mocap_quat[0]]).copy()

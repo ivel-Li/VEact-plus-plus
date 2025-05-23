@@ -8,7 +8,7 @@ SIM_TASK_CONFIGS = {
         'dataset_dir': DATA_DIR + '/sim_stack_cube_scripted',
         'num_episodes': 50,
         'episode_len': 400,
-        'camera_names': ['top']  #original repo ACT use only top views for all tasks
+        'camera_names': ['angle']  #original repo ACT use only top views for all tasks, we found the robotic arm may hide the target in top view
     },
 
     'sim_transfer_cube_scripted':{
@@ -67,7 +67,7 @@ DT = 0.02
 FPS = 50
 JOINT_NAMES = ["waist", "shoulder", "elbow", "forearm_roll", "wrist_angle", "wrist_rotate"]
 START_ARM_POSE = [0, -0.96, 1.16, 0, -0.3, 0, 0.02239, -0.02239,  0, -0.96, 1.16, 0, -0.3, 0, 0.02239, -0.02239]
-UR_START_ARM_POSE = [0, -1.57, 1.57, -1.57, -1.57, 0, 0, 0, 0, 0, 0, 0, 0, 0] #gripper 定义导致
+UR_START_ARM_POSE = [0, -1.57, 1.57, -1.57, -1.57, 0, 0.797137, 0.0045365, 0.795606, -0.790819, 0.797136, 0.00449792, 0.795542, -0.790774] #gripper 定义导致
 
 XML_DIR = str(pathlib.Path(__file__).parent.resolve()).replace("\\", "/") + '/assets/' # note: absolute path，改为正斜杠
 
