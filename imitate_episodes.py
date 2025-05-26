@@ -188,7 +188,7 @@ def main(args):
     with open(config_path, 'wb') as f:
         pickle.dump(config, f)
     if is_eval:
-        ckpt_names = [f'policy_best.ckpt']# 感觉policy_best比policy_last靠谱呀
+        ckpt_names = [f'policy_last.ckpt']# 感觉policy_best比policy_last靠谱呀
         results = []
         for ckpt_name in ckpt_names:
             success_rate, avg_return = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=10)
