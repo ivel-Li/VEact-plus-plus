@@ -17,7 +17,7 @@ from constants import PUPPET_GRIPPER_JOINT_OPEN
 from utils import load_data # data functions
 from utils import sample_box_pose, sample_insertion_pose, ur_task_sample_box_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action # helper functions
-from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy
+from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy, VEACTPPolicy
 from visualize_episodes import save_videos
 
 from detr.models.latent_model import Latent_Model_Transformer
@@ -123,6 +123,28 @@ def main(args):
     elif policy_class == 'CNNMLP':
         policy_config = {'lr': args['lr'], 'lr_backbone': lr_backbone, 'backbone' : backbone, 'num_queries': 1,
                          'camera_names': camera_names,'state_dim': state_dim,}
+    elif policy_class == 'VEACT':
+        enc_layers = 4
+        dec_layers = 7
+        nheads = 8
+        policy_config = {'lr': args['lr'],
+                         'num_queries': args['chunk_size'],
+                         'kl_weight': args['kl_weight'],
+                         'hidden_dim': args['hidden_dim'],
+                         'dim_feedforward': args['dim_feedforward'],
+                         'lr_backbone': lr_backbone,
+                         'backbone': backbone,
+                         'enc_layers': enc_layers,
+                         'dec_layers': dec_layers,
+                         'nheads': nheads,
+                         'camera_names': camera_names,
+                         'vq': args['use_vq'],
+                         'vq_class': args['vq_class'],
+                         'vq_dim': args['vq_dim'],
+                         'action_dim': action_dim,
+                         'state_dim': state_dim,
+                         'no_encoder': args['no_encoder'],
+                         }
     else:
         raise NotImplementedError
 
@@ -202,6 +224,8 @@ def make_policy(policy_class, policy_config):
         policy = CNNMLPPolicy(policy_config)
     elif policy_class == 'Diffusion':
         policy = DiffusionPolicy(policy_config)
+    elif policy_class == 'VEACT':
+        policy = VEACTPPolicy(policy_config)
     else:
         raise NotImplementedError
     return policy
@@ -213,6 +237,8 @@ def make_optimizer(policy_class, policy):
     elif policy_class == 'CNNMLP':
         optimizer = policy.configure_optimizers()
     elif policy_class == 'Diffusion':
+        optimizer = policy.configure_optimizers()
+    elif policy_class == 'VEACT':
         optimizer = policy.configure_optimizers()
     else:
         raise NotImplementedError

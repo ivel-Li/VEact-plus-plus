@@ -251,7 +251,6 @@ class ACTPolicy(nn.Module):
     def deserialize(self, model_dict):
         return self.load_state_dict(model_dict)
 
-
 class CNNMLPPolicy(nn.Module):
     def __init__(self, args_override):
         super().__init__()
@@ -279,6 +278,10 @@ class CNNMLPPolicy(nn.Module):
     def configure_optimizers(self):
         return self.optimizer
 
+class VEACTPPolicy(ACTPolicy):
+    def __init__(self, args_override):
+        super().__init__(args_override)
+        self.vq = True
 def kl_divergence(mu, logvar):
     batch_size = mu.size(0)
     assert batch_size != 0

@@ -53,7 +53,7 @@
         <camera name="left_pillar" pos="-0.5 0.2 0.6" fovy="78" mode="targetbody" target="simple_table"/>
         <camera name="right_pillar" pos="0.5 0.2 0.6" fovy="78" mode="targetbody" target="simple_table"/>
         <camera name="top" pos="1.3 0.6 1.9" fovy="78" quat="0.7071 0 0 0.7071" mode="targetbody" target="simple_table"/>
-        <camera name="angle" pos="2.1 0.6 1.65" fovy="60" quat="0.653 0.271 0.653 0.271" mode="targetbody" target="simple_table"/>
+        <camera name="angle" pos="1.9 0.6 1.5" fovy="60" quat="0.653 0.271 0.653 0.271" mode="targetbody" target="simple_table"/>
         <!-- <camera name="front_close" pos="0 0.2 0.4" fovy="78" mode="targetbody" target="vx300s_left/camera_focus"/> -->
 
     </worldbody>
