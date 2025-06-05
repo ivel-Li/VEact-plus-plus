@@ -339,8 +339,8 @@ def sample_insertion_pose():
 
 #### For UR5e Task 
 def ur_task_sample_box_pose():
-    x_range = [1.25, 1.35]#范围可能太大了
-    y_range = [0.15, 0.25]
+    x_range = [1.15, 1.25]#范围可能太大了
+    y_range = [0.10, 0.15]
     z_range = [0.775, 0.775]
 
     ranges = np.vstack([x_range, y_range, z_range])
