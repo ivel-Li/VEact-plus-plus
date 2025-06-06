@@ -10,7 +10,7 @@
                   reflectance="0.2" />
         <material name="gray_low_reflect" rgba="0.5 0.5 0.5 1" reflectance="0.05"/>
         <!--meshes-->
-        <mesh name ="table" file="../table/sigmund_table.stl" scale= "1 1 1"/>
+        <mesh name ="table" file="sigmund_table.stl" scale= "1 1 1"/>
     </asset>
 
     <visual>
@@ -50,11 +50,17 @@
 			<geom name="simple_table" type="box" size="0.8 0.6 0.0501" material="gray_low_reflect"/>
 		</body>
 
+        <!-- vision center -->
+        <body name="vision_center" pos="1.3 0.6 0.92" quat="1 0 0 0">
+            <site name="vision_center" type="box" size="0.01 0.01 0.01" rgba="0 0 0 0" />
+        </body>
         <camera name="left_pillar" pos="-0.5 0.2 0.6" fovy="78" mode="targetbody" target="simple_table"/>
         <camera name="right_pillar" pos="0.5 0.2 0.6" fovy="78" mode="targetbody" target="simple_table"/>
-        <camera name="top" pos="1.3 0.6 1.9" fovy="78" quat="0.7071 0 0 0.7071" mode="targetbody" target="simple_table"/>
-        <camera name="angle" pos="1.9 0.6 1.5" fovy="60" quat="0.653 0.271 0.653 0.271" mode="targetbody" target="simple_table"/>
-        <!-- <camera name="front_close" pos="0 0.2 0.4" fovy="78" mode="targetbody" target="vx300s_left/camera_focus"/> -->
+        <camera name="top" pos="1.3 0.6 1.5" fovy="78" quat="0.7071 0 0 0.7071" mode="targetbody" target="vision_center"/>
+        <camera name="angle" pos="1.8 0.6 1.45" fovy="60" quat="0.653 0.271 0.653 0.271" mode="targetbody" target="simple_table"/>
+        <camera name="front" pos="1.8 0.6 0.92" mode="targetbody" target="vision_center" fovy="78" />
+        <camera name="side"  pos="1.3 -0.1 0.92" mode="targetbody" target="vision_center" fovy="78"/>
+       <!-- <camera name="front_close" pos="0 0.2 0.4" fovy="78" mode="targetbody" target="vx300s_left/camera_focus"/> -->
 
     </worldbody>
 

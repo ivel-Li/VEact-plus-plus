@@ -280,6 +280,9 @@ class SingleUr5eTask(BimanualViperXTask):
         obs['images'] = dict()
         obs['images']['top'] = physics.render(height=480, width=640, camera_id='top')
         obs['images']['angle'] = physics.render(height=480, width=640, camera_id='angle')
+        obs["images"]['front'] = physics.render(height=480, width=640, camera_id='front')
+        obs["images"]['side'] = physics.render(height=480, width=640, camera_id='side')
+        obs['images']['wrist'] = physics.render(height=480, width=640, camera_id='wrist')
         # obs['images']['left_wrist'] = physics.render(height=480, width=640, camera_id='left_wrist') 先撤了
         # obs['images']['right_wrist'] = physics.render(height=480, width=640, camera_id='right_wrist')   
         return obs

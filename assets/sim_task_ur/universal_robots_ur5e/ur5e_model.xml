@@ -46,10 +46,11 @@
                 <body name="wrist_3_link" pos="0 0 0.1">
                   <inertial mass="0.1889" pos="0 0.0771683 0" quat="1 0 0 1"
                     diaginertia="0.000132134 9.90863e-05 9.90863e-05"/>
-                  <site pos="0 0 0" size="0.003 0.003 0.03" type="box" name="cali_site1" rgba="0 0 1 0"/>
-                  <site pos="0 0 0" size="0.003 0.03 0.003" type="box" name="cali_site2" rgba="0 0 1 0"/>
-                  <site pos="0 0 0" size="0.03 0.003 0.003" type="box" name="cali_site3" rgba="0 0 1 0"/>
-                  <camera name="wrist" pos="-0.1 0 0.16" fovy="20" mode="fixed" euler="0 -1.05 -1.5707" /> 
+                  <site pos="0 0 0" size="0.03 0.03 0.3" type="box" name="cali_site1" rgba="0 0 1 1"/>
+                  <site pos="0 0 0" size="0.03 0.3 0.03" type="box" name="cali_site2" rgba="0 0 1 1"/>
+                  <site pos="0 0 0" size="0.3 0.03 0.03" type="box" name="cali_site3" rgba="0 0 1 1"/>
+                  <!-- <camera name="wrist" pos="0 0.1 0.05" fovy="60" mode="fixed" quat="1 1 0 0"  /> -->
+                  <camera name="wrist" pos="0 0.1 0.08" mode="targetbody" target="robot0:2f85:pinch_view" fovy="45"/>
                   <!-- 此处camera还没好好定义，之后可能需要优化 -->
                   <joint name="wrist_3_joint" class="size1"/>
                   <geom material="linkgray" mesh="wrist3" class="visual"/>
@@ -57,7 +58,7 @@
 
                   <!-- end effector site -->
                       <site name="robot0:eef_site" pos="0 0.26 0" quat="-1 1 0 0" />
-                      <geom size="0.01" rgba="1 0 0 1" pos="0 0.26 0" quat="-1 1 0 0" contype="0"
+                      <geom size="0.01" rgba="1 0 0 0" pos="0 0.26 0" quat="-1 1 0 0" contype="0"
                         conaffinity="0" group="2" />
 
                       <!-- 2f85 -->
@@ -73,6 +74,7 @@
                           <geom class="2f85:collision" mesh="2f85:base" />
                           <site name="robot0:2f85:pinch" pos="0 0 0.145" type="sphere" group="5"
                             rgba="0.9 0.9 0.9 1" size="0.005" />
+                          <body name="robot0:2f85:pinch_view" pos="0 0 0.145"/>
                           <!-- Right-hand side 4-bar linkage -->
                           <body name="robot0:2f85:right_driver" pos="0 0.0306011 0.054904">
                             <inertial mass="0.00899563" pos="2.96931e-12 0.0177547 0.00107314"
