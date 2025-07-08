@@ -92,7 +92,11 @@ class Backbone(BackboneBase):
         backbone = getattr(torchvision.models, name)(
             replace_stride_with_dilation=[False, False, dilation],
             pretrained=is_main_process(), norm_layer=FrozenBatchNorm2d) # pretrained # TODO do we want frozen batch_norm??
-        num_channels = 512 if name in ('resnet18', 'resnet34') else 2048
+        if name in ('resnet18', 'resnet34'):
+            layer_channels = [128, 256, 512]
+        else:
+            layer_channels = [512, 1024, 2048]
+        num_channels = layer_channels if return_interm_layers else [layer_channels[-1]]
         super().__init__(backbone, train_backbone, num_channels, return_interm_layers)
 
 
@@ -111,6 +115,53 @@ class Joiner(nn.Sequential):
 
         return out, pos
 
+class HSFPN(nn.Module):
+    """高级筛选特征金字塔（参考MFDS-DETR[2,3](@ref)）"""
+    def __init__(self, in_channels_list, out_channels=256):
+        super().__init__()
+        #通道注意力筛选器（配置不同层特征权重）
+        self.ca = nn.ModuleList([
+            nn.Sequential(
+                nn.AdaptiveAvgPool2d(1),
+                nn.Conv2d(ch, out_channels, 1),
+                nn.Sigmoid()
+            ) for ch in in_channels_list
+        ])
+        # self.ca = nn.ModuleList([
+        #     nn.Sequential(
+        #         nn.AdaptiveAvgPool2d(1),
+        #         nn.Conv2d(ch, out_channels//16, 1),  # 压缩通道
+        #         nn.ReLU(),
+        #         nn.Conv2d(out_channels//16, out_channels, 1),  # 激励通道
+        #         nn.Sigmoid()
+        # ) for ch in in_channels_list
+        # ])
+        # 横向连接卷积
+        self.lateral_convs = nn.ModuleList([
+            nn.Conv2d(ch, out_channels, 1) for ch in in_channels_list
+        ])
+        # 融合卷积
+        self.fusion_conv = nn.Conv2d(out_channels, out_channels, 3, padding=1)
+
+    def forward(self, features):
+        c3, c4, c5 = features
+        
+        # 自上而下融合路径
+        p5 = self.lateral_convs[2](c5)# [B,512,7,7] → [B,256,7,7]
+        p4 = self.ca[2](c5) * F.interpolate(p5, scale_factor=2, mode='nearest') + self.lateral_convs[1](c4)#上采样p5->c3，→ [B,256,14,14]  # 使用更高效的上采样模式
+        del c5
+        p3 = self.ca[1](c4) * F.interpolate(p4, scale_factor=2, mode='nearest') + self.lateral_convs[0](c3)#→ [B,256,28,28]
+        p2 = self.fusion_conv(p3 + F.interpolate(p4, scale_factor=2, mode='nearest') + F.interpolate(p5, scale_factor=4))
+        p2= F.avg_pool2d(p2, kernel_size=4) #这样操作不知道能不能行 #→ [B,256,7,7] 其实是[B,512,15,20]
+        # 特征增强
+        return p2
+
+class JoinerWithFPN(nn.Sequential):
+        def forward(self, tensor_list: NestedTensor):
+            xs = self[0](tensor_list)  # Backbone输出
+            fused_feat = self[1](list(xs.values()))  # FPN融合
+            pos = self[2](fused_feat)  # 位置编码
+            return fused_feat, pos
 
 def build_backbone(args):
     position_embedding = build_position_encoding(args)
@@ -119,4 +170,16 @@ def build_backbone(args):
     backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation)
     model = Joiner(backbone, position_embedding)
     model.num_channels = backbone.num_channels
+    return model
+
+
+def build_Joiner(args):
+    position_embedding = build_position_encoding(args)
+    train_backbone = args.lr_backbone < 0 #反着写，改掉了backbone中的注释，让backbone fixed
+    # return_interm_layers = args.masks
+    return_interm_layers = True
+    backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation)
+    fpn = HSFPN(backbone.num_channels, args.hidden_dim)
+    model = JoinerWithFPN(backbone, fpn, position_embedding)
+    model.num_channels = args.hidden_dim
     return model

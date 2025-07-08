@@ -1,0 +1,94 @@
+<mujoco>
+    <compiler angle="radian" meshdir="assets" autolimits="true" />
+    <include file="./scenes/scene.xml"/>
+    <include file="./universal_robots_ur5e/ur5e_dependencies.xml"/>
+    <!-- <include file="vx300s_dependencies.xml"/>-->
+
+    <equality>
+           <weld body1="mocap" body2="wrist_3_link" solref="0.02 1" solimp=".25 .25 0.05" relpose="0 0 0 1 0 0 0"/> 
+    </equality>
+    <worldbody>
+        <include file="./universal_robots_ur5e/ur5e_model.xml" /> 
+        
+        <body mocap="true" name="mocap" pos="0.8 0.734 1.82">
+            <site pos="0 0 0" size="0.003 0.003 0.03" type="box" name="mocap_site1" rgba="1 0 0 1"/>
+            <site pos="0 0 0" size="0.003 0.03 0.003" type="box" name="mocap_site2" rgba="1 0 0 1"/>
+            <site pos="0 0 0" size="0.03 0.003 0.003" type="box" name="mocap_site3" rgba="1 0 0 1"/>
+        </body>
+
+        <body name="red_box" pos="1.3 0.2 0.775" quat="1 0 0 0">
+            <joint name="red_box_joint" type="free" frictionloss="0.01" />
+            <inertial pos="0 0 0" mass="0.1" diaginertia="0.004 0.004 0.004" />
+            <geom condim="4" solimp="2 1 0.01" solref="0.01 1" friction="1 0.005 0.0001" pos="0 0 0" size="0.03 0.03 0.03" type="box" name="red_box" rgba="1 0 0 1" />
+        </body>
+
+        <body name="blue_box" pos="1.3 1.0 0.775" quat="1 0 0 0">
+            <joint name="blue_box_joint" type="free" frictionloss="0.01" />
+            <inertial pos="0 0 0" mass="0.1" diaginertia="0.004 0.004 0.004" />
+            <geom condim="4" solimp="2 1 0.01" solref="0.01 1" friction="1 0.005 0.0001" pos="0 0 0" size="0.03 0.03 0.03" type="box" name="blue_box" rgba="0 0 1 1" />
+        </body>
+    </worldbody>
+
+    <contact>
+        <exclude body1="robot0:2f85:base" body2="robot0:2f85:left_driver" />
+        <exclude body1="robot0:2f85:base" body2="robot0:2f85:right_driver" />
+        <exclude body1="robot0:2f85:base" body2="robot0:2f85:left_spring_link" />
+        <exclude body1="robot0:2f85:base" body2="robot0:2f85:right_spring_link" />
+        <exclude body1="robot0:2f85:right_coupler" body2="robot0:2f85:right_follower" />
+        <exclude body1="robot0:2f85:left_coupler" body2="robot0:2f85:left_follower" />
+    </contact>   
+
+    <equality>
+        <connect anchor="0 0 0" body1="robot0:2f85:right_follower" body2="robot0:2f85:right_coupler"
+        solimp="0.95 0.99 0.001" solref="0.005 1" />
+        <connect anchor="0 0 0" body1="robot0:2f85:left_follower" body2="robot0:2f85:left_coupler"
+        solimp="0.95 0.99 0.001" solref="0.005 1" />
+        <joint joint1="robot0:2f85:right_driver_joint" joint2="robot0:2f85:left_driver_joint"
+        polycoef="0 1 0 0 0" solimp="0.95 0.99 0.001"
+        solref="0.005 1" />
+    </equality>
+      <!--
+    This adds stability to the model by having a tendon that distributes the forces between both
+    joints, such that the equality constraint doesn't have to do that much work in order to equalize
+    both joints. Since both joints share the same sign, we split the force between both equally by
+    setting coef=0.5
+  -->
+    <tendon>
+        <fixed name="robot0:2f85:split">
+            <joint joint="robot0:2f85:right_driver_joint" coef="0.5" />
+            <joint joint="robot0:2f85:left_driver_joint" coef="0.5" />
+        </fixed>
+    </tendon>
+
+
+    <actuator>
+        <!-- <general class="size3" name="shoulder_pan" joint="shoulder_pan_joint"/>
+        <general class="size3" name="shoulder_lift" joint="shoulder_lift_joint"/>
+        <general class="size3_limited" name="elbow" joint="elbow_joint"/>
+        <general class="size1" name="wrist_1" joint="wrist_1_joint"/>
+        <general class="size1" name="wrist_2" joint="wrist_2_joint"/>
+        <general class="size1" name="wrist_3" joint="wrist_3_joint"/> -->
+        <general class="2f85" name="robot0:2f85:fingers_actuator" tendon="robot0:2f85:split"
+        forcerange="-5 5" ctrlrange="0 255"
+        gainprm="0.3137255 0 0" biasprm="0 -100 -10" />
+    </actuator>
+
+    <sensor>
+        <force name="robot0:eef_force" site="robot0:eef_site" cutoff="50" />
+        <torque name="robot0:eef_torque" site="robot0:eef_site" cutoff="10" />
+    </sensor>
+    
+    <!-- <actuator>
+        <position ctrllimited="true" ctrlrange="0.021 0.057" joint="vx300s_left/left_finger" kp="200"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-0.057 -0.021" joint="vx300s_left/right_finger" kp="200"  user="1"/>
+
+        <position ctrllimited="true" ctrlrange="0.021 0.057" joint="vx300s_right/left_finger" kp="200"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-0.057 -0.021" joint="vx300s_right/right_finger" kp="200"  user="1"/>
+
+    </actuator>-->
+    <size nkey="1"/>
+    <keyframe>
+        <key qpos='0 -1.57 1.57 -1.57 -1.57 0 0 0 0 0 0 0 0 0 1.3 0.2 0.775 1 0 0 0 1.3 1 0.775 1 0 0 0'/>
+    </keyframe> 
+
+</mujoco>

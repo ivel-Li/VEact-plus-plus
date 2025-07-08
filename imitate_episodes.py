@@ -17,7 +17,7 @@ from constants import PUPPET_GRIPPER_JOINT_OPEN
 from utils import load_data # data functions
 from utils import sample_box_pose, sample_insertion_pose, ur_task_sample_box_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action # helper functions
-from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy, VEACTPPolicy
+from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy, VEACTPolicy
 from visualize_episodes import save_videos
 
 from detr.models.latent_model import Latent_Model_Transformer
@@ -26,6 +26,7 @@ from sim_env import BOX_POSE
 
 import IPython
 e = IPython.embed
+
 def get_auto_index(dataset_dir):
     max_idx = 1000
     for i in range(max_idx+1):
@@ -225,7 +226,7 @@ def make_policy(policy_class, policy_config):
     elif policy_class == 'Diffusion':
         policy = DiffusionPolicy(policy_config)
     elif policy_class == 'VEACT':
-        policy = VEACTPPolicy(policy_config)
+        policy = VEACTPolicy(policy_config)
     else:
         raise NotImplementedError
     return policy
@@ -438,7 +439,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
 
                 ### query policy
                 time3 = time.time()
-                if config['policy_class'] == "ACT":
+                if config['policy_class'] == "ACT" or config['policy_class'] == "VEACT":
                     if t % query_frequency == 0:
                         if vq:
                             if rollout_id == 0:
@@ -525,10 +526,10 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 # print(sleep_time)
                 time.sleep(sleep_time)
                 # time.sleep(max(0, DT - duration - culmulated_delay))
-                if duration >= DT:
-                    culmulated_delay += (duration - DT)
-                    print(f'Warning: step duration: {duration:.3f} s at step {t} longer than DT: {DT} s, culmulated delay: {culmulated_delay:.3f} s')
-                # else:
+                # if duration >= DT:
+                #     culmulated_delay += (duration - DT)
+                #     print(f'Warning: step duration: {duration:.3f} s at step {t} longer than DT: {DT} s, culmulated delay: {culmulated_delay:.3f} s')
+                # # else:
                 #     culmulated_delay = max(0, culmulated_delay - (DT - duration))
 
             print(f'Avg fps {max_timesteps / (time.time() - time0)}')
