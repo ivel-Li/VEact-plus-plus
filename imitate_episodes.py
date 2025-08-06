@@ -80,7 +80,9 @@ def main(args):
         aloha = aloha_task_map[task_name]
         action_dim = 16 if aloha else 9  #7+dummy dim
     else:
-        raise NotImplementedError
+        # raise NotImplementedError
+        aloha = False
+        action_dim = 9  #7+dummy dim for ur5e 如果是ur5e
 
     state_dim = 14  if aloha else 7
 

@@ -68,7 +68,9 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 episode_len = original_action_shape[0]
                 # get observation at start_ts only
                 qpos = root['/observations/qpos'][start_ts]
-                qvel = root['/observations/qvel'][start_ts]
+                qvel = None
+                if '/observations/qvel' in root:
+                    qvel = root['/observations/qvel'][start_ts]
                 image_dict = dict()
                 for cam_name in self.camera_names:
                     image_dict[cam_name] = root[f'/observations/images/{cam_name}'][start_ts]
@@ -155,7 +157,8 @@ def get_norm_stats(dataset_path_list):
         try:
             with h5py.File(dataset_path, 'r') as root:
                 qpos = root['/observations/qpos'][()]
-                qvel = root['/observations/qvel'][()]
+                if '/observations/qvel' in root:
+                    qvel = root['/observations/qvel'][()]
                 if '/base_action' in root:
                     base_action = root['/base_action'][()]
                     base_action = preprocess_base_action(base_action)
