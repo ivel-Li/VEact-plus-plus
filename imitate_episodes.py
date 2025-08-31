@@ -340,10 +340,15 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         post_process = lambda a: a * stats['action_std'] + stats['action_mean']
 
     # load environment
-    if real_robot:
+    if real_robot and aloha:
         from aloha_scripts.robot_utils import move_grippers # requires aloha
         from aloha_scripts.real_env import make_real_env # requires aloha
         env = make_real_env(init_node=True, setup_robots=True, setup_base=True)
+        env_max_reward = 0
+    elif real_robot and (not aloha):
+        from ur5e_scripts.real_env import make_real_env # requires ur5e
+        # env = make_real_env(init_node=True, setup_robots=True, setup_base=True)
+        env = make_real_env(init_node=True, camera_names=camera_names, setup_robots=True)
         env_max_reward = 0
     else:
         from sim_env import make_sim_env
@@ -513,8 +518,10 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
 
                 ### step the environment
                 time5 = time.time()
-                if real_robot:
+                if real_robot and aloha:
                     ts = env.step(target_qpos, base_action)
+                elif real_robot and (not aloha):
+                    ts = env.step(action)
                 else:
                     ts = env.step(action)
                 # print('step env: ', time.time() - time5)
@@ -537,7 +544,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
             print(f'Avg fps {max_timesteps / (time.time() - time0)}')
             plt.close()
         if real_robot:
-            move_grippers([env.puppet_bot_left, env.puppet_bot_right], [PUPPET_GRIPPER_JOINT_OPEN] * 2, move_time=0.5)  # open
+            if aloha:
+                move_grippers([env.puppet_bot_left, env.puppet_bot_right], [PUPPET_GRIPPER_JOINT_OPEN] * 2, move_time=0.5)  # open
             # save qpos_history_raw
             log_id = get_auto_index(ckpt_dir)
             np.save(os.path.join(ckpt_dir, f'qpos_{log_id}.npy'), qpos_history_raw)

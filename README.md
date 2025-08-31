@@ -83,3 +83,5 @@ Please refer to [tuning tips](https://docs.google.com/document/d/1FVIZfoALXg_ZkY
 
 ### [ACT tuning tips](https://docs.google.com/document/d/1FVIZfoALXg_ZkYKaYVh-qOlaXveq5CtvJHXkY25eYhs/edit?usp=sharing)
 TL;DR: if your ACT policy is jerky or pauses in the middle of an episode, just train for longer! Success rate and smoothness can improve way after loss plateaus.
+
+    python3 imitate_episodes.py --task_name test --ckpt_dir ./ckpt/test --policy_class VEACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 --num_steps 20000  --lr 1e-5 --seed 0

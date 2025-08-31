@@ -7,8 +7,15 @@ TASK_CONFIGS = {
         'test':{
         'dataset_dir': DATA_DIR + '/test',
         'num_episodes': 3,
-        'episode_len': 200,
+        'episode_len': 10000,
         'camera_names': ['cam0']  #original repo ACT use only top views for all tasks, we found the robotic arm may hide the target in top view
+    },
+
+    'ur5e_fetch':{
+        'dataset_dir': DATA_DIR + '/ur5e_fetch',
+        'num_episodes': 3,
+        'episode_len': 10000,
+        'camera_names': ['cam0', 'cam1','cam2','cam3']  #original repo ACT use only top views for all tasks, we found the robotic arm may hide the target in top view
     },
 
 

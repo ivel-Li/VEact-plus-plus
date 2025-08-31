@@ -2,7 +2,7 @@ import pathlib
 import os
 
 ### Task parameters
-DATA_DIR = '/home/zfu/interbotix_ws/src/act/data' if os.getlogin() == 'zfu' else 'D:/Reasearch/VEact-plus-plus/data'
+DATA_DIR = '/home/zfu/interbotix_ws/src/act/data' if os.getlogin() == 'zfu' else '/home/ivel/research/VEACT/VEact-plus-plus/data'
 SIM_TASK_CONFIGS = {
     'sim_stack_cube_scripted':{
         'dataset_dir': DATA_DIR + '/sim_stack_cube_scripted',
