@@ -65,7 +65,7 @@ class BackboneBase(nn.Module):
         #     if not train_backbone or 'layer2' not in name and 'layer3' not in name and 'layer4' not in name:
         #         parameter.requires_grad_(False)
         if return_interm_layers:
-            return_layers = {"layer1": "0", "layer2": "1", "layer3": "2", "layer4": "3"}
+            return_layers = {"layer2": "0", "layer3": "1", "layer4": "2"}
         else:
             return_layers = {'layer4': "0"}
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
@@ -160,8 +160,14 @@ class JoinerWithFPN(nn.Sequential):
         def forward(self, tensor_list: NestedTensor):
             xs = self[0](tensor_list)  # Backbone输出
             fused_feat = self[1](list(xs.values()))  # FPN融合
-            pos = self[2](fused_feat)  # 位置编码
-            return fused_feat, pos
+            # pos = self[2](fused_feat)  # 位置编码
+            # return fused_feat, pos
+        
+            # 直接对 fused_feat 做位置编码
+            pos = self[2](fused_feat).to(fused_feat.dtype)
+            return [fused_feat], [pos]
+
+        
 
 def build_backbone(args):
     position_embedding = build_position_encoding(args)
@@ -181,5 +187,5 @@ def build_Joiner(args):
     backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation)
     fpn = HSFPN(backbone.num_channels, args.hidden_dim)
     model = JoinerWithFPN(backbone, fpn, position_embedding)
-    model.num_channels = args.hidden_dim
+    model.num_channels = backbone.num_channels
     return model

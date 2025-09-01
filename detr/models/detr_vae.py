@@ -460,7 +460,7 @@ def build_HSPNvae(args):
     # fpn = build_fpn(args)
     Joiners= []
     for _ in args.camera_names:
-        Joiner = build_backbone(args)  
+        Joiner = build_Joiner(args)  
         Joiners.append(Joiner)
 
 
