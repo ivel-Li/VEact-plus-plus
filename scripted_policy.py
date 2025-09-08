@@ -215,9 +215,48 @@ class StackCubePolicy(SingleArmBasePolicy):
             {"t": 400, "xyz": box_blue_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":1},#stay
       ]#
 
-class MadaMadaPolicy(SingleArmBasePolicy):
+class InsertBlockPolicy(SingleArmBasePolicy):
     def __init__(self, inject_noise=False):
         super().__init__(inject_noise)
+    def generate_trajectory(self, ts_first):
+
+
+        init_mocap_pose = ts_first.observation['mocap_pose']
+
+        box_info = np.array(ts_first.observation['env_state'])
+        box_red_xyz = box_info[:3]
+        box_red_quat = box_info[3:7]
+        box_blue_xyz = np.array([1.3,1.01,0.775])
+        # print(f"Generate trajectory for {box_xyz=}")
+
+        gripper_pick_quat = Quaternion(init_mocap_pose[3:])
+        # gripper_pick_quat = init_mocap_pose[3:]
+        # gripper_pick_quat = gripper_pick_quat * Quaternion(axis=[0.0, 0.0, 1.0], degrees=-90)
+        # gripper_pick_quat = gripper_pick_quat * Quaternion(axis=[1.0, 0.0, 0.0], degrees=-90)
+
+        # meet_left_quat = Quaternion(axis=[1.0, 0.0, 0.0], degrees=90)
+
+        # meet_xyz = np.array([0, 0.5, 0.25])
+
+        # 结果为 [0.5, -0.5, 0.5, 0.5]（wxyz格式）
+
+        self.left_trajectory = [
+            {"t": 0, "xyz": init_mocap_pose[:3], "quat": init_mocap_pose[3:], "gripper":0},
+            {"t": 40, "xyz": box_red_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 60, "xyz": box_red_xyz+np.array([0, 0, 0.35]), "quat": gripper_pick_quat.elements,"gripper":1},#gripper open
+            {"t": 90, "xyz": box_red_xyz+np.array([0, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":1},#close to cube
+            {"t": 120, "xyz": box_red_xyz+np.array([0, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":0},#gripper close
+            {"t": 140, "xyz": box_red_xyz+np.array([0, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 240, "xyz": box_blue_xyz+np.array([-0.1, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 280, "xyz": box_blue_xyz+np.array([-0.1, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 300, "xyz": box_blue_xyz+np.array([-0.1, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":1},
+            {"t": 340, "xyz": box_blue_xyz+np.array([-0.1, 0, 0.3]), "quat": gripper_pick_quat.elements,"gripper":1},
+            {"t": 370, "xyz": box_blue_xyz+np.array([-0.2, 0, 0.3]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 420, "xyz": box_blue_xyz+np.array([-0.2, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 460, "xyz": box_blue_xyz+np.array([-0.09, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":0},
+            {"t": 480, "xyz": box_blue_xyz+np.array([-0.09, 0, 0.24]), "quat": gripper_pick_quat.elements,"gripper":1},
+            {"t": 500, "xyz": box_blue_xyz+np.array([-0.09, 0, 0.4]), "quat": gripper_pick_quat.elements,"gripper":0},
+      ]#
 def test_policy(task_name):
     # example rolling out pick_and_transfer policy
     onscreen_render = True

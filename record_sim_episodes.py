@@ -8,7 +8,7 @@ import h5py
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, UR_PUPPET_GRIPPER_CONTROL_NORMALIZE_FN,SIM_TASK_CONFIGS
 from ee_sim_env import make_ee_sim_env
 from sim_env import make_sim_env, BOX_POSE
-from scripted_policy import PickAndTransferPolicy, InsertionPolicy, StackCubePolicy, MadaMadaPolicy
+from scripted_policy import PickAndTransferPolicy, InsertionPolicy, StackCubePolicy, InsertBlockPolicy
 
 import IPython
 e = IPython.embed
@@ -28,7 +28,7 @@ def main(args):
     num_episodes = args['num_episodes']
     onscreen_render = args['onscreen_render']
     inject_noise = False
-    render_cam_name = 'angle'
+    render_cam_name = 'front'
 
     if not os.path.isdir(dataset_dir):
         os.makedirs(dataset_dir, exist_ok=True)
@@ -47,8 +47,8 @@ def main(args):
     elif task_name == 'sim_stack_cube_scripted':
         policy_cls = StackCubePolicy
         aloha = False
-    elif task_name == 'sim_madamada_scripted':
-        policy_cls = MadaMadaPolicy
+    elif task_name == 'sim_insert_block_scripted':
+        policy_cls = InsertBlockPolicy
         aloha = False
     else:
         raise NotImplementedError

@@ -8,7 +8,7 @@ from pyquaternion import Quaternion
 
 #'d:/Reasearch/ACT/imitation_learning_dp-master/imitation_learning_dp/assets/scenes/scene.xml'
 'd:/Reasearch/robotics/gello_software/experiments/sim_task_ur/scenes/ee_transfer_cube.xml'
-m = mujoco.MjModel.from_xml_path('D:/Reasearch/VEact-plus-plus/assets/sim_task_ur/stack_cube.xml')
+m = mujoco.MjModel.from_xml_path('D:/Reasearch/VEact-plus-plus/assets/sim_task_ur/ee_insert_block.xml')
 d = mujoco.MjData(m)
 
 def set_mocap_pose(pos, quat):
@@ -141,7 +141,6 @@ with mujoco.viewer.launch(m, d) as viewer:
 
     while viewer.is_running():
         # action = policy()
-        # mujoco.mj_resetDataKeyframe(m, d, 0)
         # if action is not None:
         #     set_mocap_pose(action[:3], action[3:7])
         #     d.ctrl[0] = action[7]  # 假设第一个控制器控制夹具

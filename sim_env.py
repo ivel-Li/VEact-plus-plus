@@ -55,10 +55,10 @@ def make_sim_env(task_name):
         task = StackCubeTask(random=False)
         env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
                                   n_sub_steps=None, flat_observation=False)
-    elif 'sim_madamada' in task_name:
-        xml_path = os.path.join(XML_DIR, f'sim_task_ur', f'stack_cube.xml').replace("\\", "/")#统一为正斜杠
+    elif 'sim_insert_block' in task_name:
+        xml_path = os.path.join(XML_DIR, f'sim_task_ur', f'insert_block.xml').replace("\\", "/")#统一为正斜杠
         physics = mujoco.Physics.from_xml_path(xml_path)
-        task = StackCubeTask(random=False)
+        task = InsertBlockTask(random=False)
         env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
                                   n_sub_steps=None, flat_observation=False)
     else:
@@ -286,6 +286,7 @@ class SingleUr5eTask(BimanualViperXTask):
         # obs['images']['left_wrist'] = physics.render(height=480, width=640, camera_id='left_wrist') 先撤了
         # obs['images']['right_wrist'] = physics.render(height=480, width=640, camera_id='right_wrist')   
         return obs
+
 class StackCubeTask(SingleUr5eTask):
     def __init__(self, random=None):
         super().__init__(random=random)
@@ -318,10 +319,14 @@ class StackCubeTask(SingleUr5eTask):
             name_geom_2 = physics.model.id2name(id_geom_2, 'geom')
             contact_pair = (name_geom_1, name_geom_2)
             all_contact_pairs.append(contact_pair)
+        
 
-        touch_gripper = ("red_box", "2f85:gripper_finger") in all_contact_pairs
-        touch_box = ("red_box", "blue_box") in all_contact_pairs
-        touch_table = ("red_box", "table_collision") in all_contact_pairs
+        def check_contact(geom1, geom2):
+            return (geom1, geom2) in all_contact_pairs or (geom2, geom1) in all_contact_pairs
+        
+        touch_gripper = check_contact("red_box", "robot0:2f85:left_pad1") and check_contact("red_box", "robot0:2f85:right_pad1") 
+        touch_box = check_contact("red_box", "blue_box") 
+        touch_table = check_contact("red_box", "simple_table") 
 
         reward = 0
         if touch_gripper:
@@ -334,7 +339,71 @@ class StackCubeTask(SingleUr5eTask):
             reward = 4
         return reward
 
+    
+class InsertBlockTask(SingleUr5eTask):
+    def __init__(self, random=None):
+        super().__init__(random=random)
+        self.max_reward = 4
 
+    def initialize_episode(self, physics):
+        """Sets the state of the environment at the start of each episode."""
+        with physics.reset_context():
+            physics.named.data.qpos[:14] = UR_START_ARM_POSE[:14]
+            np.copyto(physics.data.ctrl, UR_START_ARM_POSE[:7])#???DATA.CTRL效果不一样呀，得看xml的actuator
+            assert BOX_POSE[0] is not None
+            if len(BOX_POSE[0]) == 14:
+                physics.named.data.qpos[14:] = BOX_POSE[0] #record时复制所有环境信息
+            elif len(BOX_POSE[0]) == 7:
+                physics.named.data.qpos[14:21] = BOX_POSE[0] #训练时为了少修改一些代码
+            # print(f"{BOX_POSE=}")
+        super().initialize_episode(physics)
+
+    @staticmethod
+    def get_env_state(physics):
+        env_state = physics.data.qpos.copy()[14:]# observe red block position,赋值给make_sim环境
+        return env_state
+
+    def get_reward(self, physics):
+        # return whether left gripper is holding the box
+        all_contact_pairs = []
+        for i_contact in range(physics.data.ncon):
+            id_geom_1 = physics.data.contact[i_contact].geom1
+            id_geom_2 = physics.data.contact[i_contact].geom2
+            name_geom_1 = physics.model.id2name(id_geom_1, 'geom')
+            name_geom_2 = physics.model.id2name(id_geom_2, 'geom')
+            contact_pair = (name_geom_1, name_geom_2)
+            all_contact_pairs.append(contact_pair)
+
+        def check_contact(geom1, geom2):
+            return (geom1, geom2) in all_contact_pairs or (geom2, geom1) in all_contact_pairs
+        
+
+         # --- 根据您的建议，使用更精确的边界框逻辑 ---
+        red_block_pos = physics.data.body('red_block').xpos
+        # 在MuJoCo中, geom的size属性指的是半长、半宽、半高
+        red_block_half_sizes = physics.model.geom('red_block').size
+        target_pos = physics.data.body('target_body').xpos
+
+        # 检查target_pos是否在red_block定义的边界框(bounding box)内
+        is_within_bounds = (np.abs(red_block_pos - target_pos) < red_block_half_sizes).all()
+        touch_target = is_within_bounds
+
+        touch_gripper = check_contact("red_block", "robot0:2f85:left_pad1") and check_contact("red_block", "robot0:2f85:right_pad1") 
+        touch_table = check_contact("red_block", "simple_table") 
+        # touch_target  = check_contact("red_block", "target_zone")
+        touch_block_1 = check_contact("red_block", "blue_block_1")
+        touch_block_2 = check_contact("red_block", "blue_block_2")
+    
+        reward = 0
+        if touch_gripper:
+            reward = 1
+        if touch_gripper and not touch_table: # lifted
+            reward = 2
+        if touch_target: # attempted transfer（逻辑需要修改）
+            reward = 3
+        if touch_target and not touch_block_1 and not touch_block_2: # successful transfer
+            reward = 4
+        return reward
 
 def get_action(master_bot_left, master_bot_right):
     action = np.zeros(14)

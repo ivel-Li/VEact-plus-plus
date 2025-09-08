@@ -16,16 +16,25 @@
             <site pos="0 0 0" size="0.03 0.003 0.003" type="box" name="mocap_site3" rgba="1 0 0 1"/>
         </body>
 
-        <body name="red_box" pos="1.3 0.2 0.775" quat="1 0 0 0">
-            <joint name="red_box_joint" type="free" frictionloss="0.01" />
+        <body name="red_block" pos="1.3 0.2 0.775" quat="1 0 0 0">
+            <joint name="red_block_joint" type="free" frictionloss="0.01" />
             <inertial pos="0 0 0" mass="0.1" diaginertia="0.004 0.004 0.004" />
-            <geom condim="4" solimp="2 1 0.01" solref="0.01 1" friction="1 0.005 0.0001" pos="0 0 0" size="0.03 0.03 0.03" type="box" name="red_box" rgba="1 0 0 1" />
+            <geom condim="4" solimp="2 1 0.01" solref="0.01 1" friction="1 0.005 0.0001" pos="0 0 0" size="0.08 0.015 0.015" type="box" name="red_block" rgba="1 0 0 1" />
         </body>
 
-        <body name="blue_box" pos="1.3 1.0 0.775" quat="1 0 0 0">
-            <joint name="blue_box_joint" type="free" frictionloss="0.01" />
+        <body name="blue_block_1" pos="1.3 1.04 0.755" quat="1 0 0 0">
             <inertial pos="0 0 0" mass="0.1" diaginertia="0.004 0.004 0.004" />
-            <geom condim="4" solimp="2 1 0.01" solref="0.01 1" friction="1 0.005 0.0001" pos="0 0 0" size="0.03 0.03 0.03" type="box" name="blue_box" rgba="0 0 1 1" />
+            <geom condim="4" solimp="2 1 0.01" solref="0.01 1" friction="1 0.005 0.0001" pos="0 0 0" size="0.07 0.013 0.013" type="box" name="blue_block_1" rgba="0 0 1 1" />
+        </body>
+
+        <body name="blue_block_2" pos="1.3 0.98 0.755" quat="1 0 0 0">
+            <inertial pos="0 0 0" mass="0.1" diaginertia="0.004 0.004 0.004" />
+            <geom condim="4" solimp="2 1 0.01" solref="0.01 1" friction="1 0.005 0.0001" pos="0 0 0" size="0.07 0.013 0.013" type="box" name="blue_block_2" rgba="0 0 1 1" />
+        </body>
+
+                <!-- Add a target geom that doesn't collide -->
+        <body name="target_body" pos="1.3 1.01 0.755">
+            <geom name="target_zone" type="box" size="0.01 0.01 0.01" contype="0" conaffinity="0" rgba="0 1 0 0"/>
         </body>
     </worldbody>
 
@@ -88,7 +97,8 @@
     </actuator>-->
     <size nkey="1"/>
     <keyframe>
-        <key qpos='0 -1.57 1.57 -1.57 -1.57 0 0 0 0 0 0 0 0 0 1.3 0.2 0.775 1 0 0 0 1.3 1 0.775 1 0 0 0'/>
+       <!-- <key qpos='0 -1.57 1.57 -1.57 -1.57 0 0 0 0 0 0 0 0 0 1.3 0.2 0.775 1 0 0 0 1.3 1 0.775 1 0 0 0'/> -->
+        <key qpos='0 -1.57 1.57 -1.57 -1.57 0 0 0 0 0 0 0 0 0 1.3 0.2 0.775 1 0 0 0'/>
     </keyframe> 
 
 </mujoco>

@@ -11,15 +11,22 @@ SIM_TASK_CONFIGS = {
         'camera_names': ['angle']  #original repo ACT use only top views for all tasks, we found the robotic arm may hide the target in top view
     },
 
+    'sim_insert_block_scripted':{
+        'dataset_dir': DATA_DIR + '/sim_insert_block_scripted',
+        'num_episodes': 50,
+        'episode_len': 500,
+        'camera_names': ['angle']  #original repo ACT use only top views for all tasks, we found the robotic arm may hide the target in top view
+    },
+
     'sim_transfer_cube_scripted':{
         'dataset_dir': DATA_DIR + '/sim_transfer_cube_scripted',
         'num_episodes': 50,
         'episode_len': 400,
-        'camera_names': ['top', 'left_wrist', 'right_wrist']
+        'camera_names': ['top']
     },
 
     'sim_transfer_cube_human':{
-        'dataset_dir': DATA_DIR + '/sim_transfer_cube_human',
+        'dataset_dir': DATA_DIR + '/sim_transfer_cube_human', 
         'num_episodes': 50,
         'episode_len': 400,
         'camera_names': ['top']
